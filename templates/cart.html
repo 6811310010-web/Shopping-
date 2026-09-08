@@ -1,0 +1,345 @@
+{% extends "base.html" %}
+
+{% block title %}Shopping Cart - CS Tech Store{% endblock %}
+
+
+{% block content %}
+
+<section class="cart-section">
+
+    <div class="cart-header">
+
+        <div>
+
+            <span class="section-label">
+                SHOPPING CART
+            </span>
+
+            <h1>
+                Your Cart
+            </h1>
+
+        </div>
+
+        <a
+            href="{{ url_for('index') }}"
+            class="continue-button"
+        >
+
+            <i class="fa-solid fa-arrow-left"></i>
+
+            Continue Shopping
+
+        </a>
+
+    </div>
+
+
+    {% if cart_items %}
+
+        <div class="cart-layout">
+
+            <!-- ================= CART ITEMS ================= -->
+
+            <div class="cart-items">
+
+                {% for item in cart_items %}
+
+                    <div class="cart-item">
+
+                        <!-- Image -->
+
+                        <div class="cart-image">
+
+                            <img
+                                src="{{ url_for('static', filename=item.image) }}"
+                                alt="{{ item.name }}"
+                            >
+
+                        </div>
+
+
+                        <!-- Product -->
+
+                        <div class="cart-product">
+
+                            <span class="product-category">
+                                Product
+                            </span>
+
+                            <h3>
+                                {{ item.name }}
+                            </h3>
+
+                            <p>
+                                ${{ "%.2f"|format(item.price) }}
+                                each
+                            </p>
+
+                        </div>
+
+
+                        <!-- Quantity -->
+
+                        <div class="quantity-section">
+
+                            <span class="quantity-label">
+                                Quantity
+                            </span>
+
+                            <div class="quantity-controls">
+
+                                <!-- MINUS -->
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'decrease_quantity',
+                                        item_id=item._id
+                                    ) }}"
+                                >
+
+                                    <button
+                                        type="submit"
+                                        class="quantity-button"
+                                    >
+                                        −
+                                    </button>
+
+                                </form>
+
+
+                                <span class="quantity">
+                                    {{ item.quantity }}
+                                </span>
+
+
+                                <!-- PLUS -->
+
+                                <form
+                                    method="POST"
+                                    action="{{ url_for(
+                                        'increase_quantity',
+                                        item_id=item._id
+                                    ) }}"
+                                >
+
+                                    <button
+                                        type="submit"
+                                        class="quantity-button"
+                                        {% if item.stock <= 0 %}
+                                            disabled
+                                        {% endif %}
+                                    >
+                                        +
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+
+                            {% if item.stock <= 0 %}
+
+                                <small class="no-stock">
+                                    Maximum stock reached
+                                </small>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- Subtotal -->
+
+                        <div class="cart-subtotal">
+
+                            <span>
+                                Subtotal
+                            </span>
+
+                            <strong>
+                                ${{ "%.2f"|format(item.subtotal) }}
+                            </strong>
+
+                        </div>
+
+
+                        <!-- DELETE -->
+
+                        <form
+                            method="POST"
+                            action="{{ url_for(
+                                'remove_item',
+                                item_id=item._id
+                            ) }}"
+                        >
+
+                            <button
+                                type="submit"
+                                class="delete-button"
+                                title="Remove item"
+                            >
+
+                                <i class="fa-solid fa-trash"></i>
+
+                            </button>
+
+                        </form>
+
+                    </div>
+
+                {% endfor %}
+
+
+                <!-- CLEAR CART -->
+
+                <form
+                    method="POST"
+                    action="{{ url_for('clear_cart') }}"
+                    class="clear-cart-form"
+                >
+
+                    <button
+                        type="submit"
+                        class="clear-button"
+                    >
+
+                        <i class="fa-solid fa-trash-can"></i>
+
+                        Clear Cart
+
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <!-- ================= ORDER SUMMARY ================= -->
+
+            <aside class="order-summary">
+
+                <h2>
+                    Order Summary
+                </h2>
+
+
+                <div class="summary-row">
+
+                    <span>
+                        Items
+                    </span>
+
+                    <span>
+                        {{ cart_count }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-row">
+
+                    <span>
+                        Subtotal
+                    </span>
+
+                    <span>
+                        ${{ "%.2f"|format(total) }}
+                    </span>
+
+                </div>
+
+
+                <div class="summary-row">
+
+                    <span>
+                        Shipping
+                    </span>
+
+                    <span class="free">
+                        FREE
+                    </span>
+
+                </div>
+
+
+                <hr>
+
+
+                <div class="summary-total">
+
+                    <span>
+                        Total
+                    </span>
+
+                    <strong>
+                        ${{ "%.2f"|format(total) }}
+                    </strong>
+
+                </div>
+
+
+                <button
+                    class="checkout-button"
+                    onclick="alert('Checkout feature coming soon!')"
+                >
+
+                    <i class="fa-solid fa-credit-card"></i>
+
+                    Proceed to Checkout
+
+                </button>
+
+
+                <p class="secure-text">
+
+                    <i class="fa-solid fa-lock"></i>
+
+                    Secure checkout
+
+                </p>
+
+            </aside>
+
+        </div>
+
+
+    {% else %}
+
+        <!-- ================= EMPTY CART ================= -->
+
+        <div class="empty-cart">
+
+            <div class="empty-cart-icon">
+
+                <i class="fa-solid fa-cart-shopping"></i>
+
+            </div>
+
+            <h2>
+                Your cart is empty
+            </h2>
+
+            <p>
+                You haven't added anything to your cart yet.
+            </p>
+
+            <a
+                href="{{ url_for('index') }}"
+                class="hero-button"
+            >
+
+                <i class="fa-solid fa-store"></i>
+
+                Start Shopping
+
+            </a>
+
+        </div>
+
+    {% endif %}
+
+</section>
+
+{% endblock %}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>{% block title %}CS Tech Store{% endblock %}</title>
+
+    <!-- Google Font -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <!-- Our CSS -->
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <!-- ================= NAVBAR ================= -->
+
+    <nav class="navbar">
+
+        <div class="nav-container">
+
+            <a
+                href="{{ url_for('index') }}"
+                class="logo"
+            >
+                <i class="fa-solid fa-store"></i>
+                CS Tech Store
+            </a>
+
+
+            <div class="nav-links">
+
+                <a href="{{ url_for('index') }}">
+                    <i class="fa-solid fa-house"></i>
+                    Home
+                </a>
+
+                <a href="{{ url_for('store_map') }}">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    Store Map
+                </a>
+
+                <a
+                    href="{{ url_for('view_cart') }}"
+                    class="cart-link"
+                >
+
+                    <i class="fa-solid fa-cart-shopping"></i>
+
+                    Cart
+
+                    {% if cart_count > 0 %}
+
+                        <span class="cart-badge">
+                            {{ cart_count }}
+                        </span>
+
+                    {% endif %}
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </nav>
+
+
+    <!-- ================= FLASH MESSAGES ================= -->
+
+    <div class="flash-container">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+
+            {% if messages %}
+
+                {% for category, message in messages %}
+
+                    <div class="flash {{ category }}">
+
+                        {% if category == "success" %}
+                            <i class="fa-solid fa-circle-check"></i>
+                        {% else %}
+                            <i class="fa-solid fa-circle-exclamation"></i>
+                        {% endif %}
+
+                        {{ message }}
+
+                    </div>
+
+                {% endfor %}
+
+            {% endif %}
+
+        {% endwith %}
+
+    </div>
+
+
+    <!-- ================= MAIN CONTENT ================= -->
+
+    <main>
+
+        {% block content %}
+
+        {% endblock %}
+
+    </main>
+
+
+    <!-- ================= FOOTER ================= -->
+
+    <footer>
+
+        <div class="footer-content">
+
+            <h3>CS Tech Store</h3>
+
+            <p>
+                Simple, reliable and convenient online shopping.
+            </p>
+
+            <p class="copyright">
+                © 2026 CS Tech Store. All rights reserved.
+            </p>
+
+        </div>
+
+    </footer>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
+
+    <script>
+
+        // Automatically hide flash messages
+        setTimeout(function () {
+
+            const messages =
+                document.querySelectorAll(".flash");
+
+            messages.forEach(function (message) {
+
+                message.style.opacity = "0";
+
+                setTimeout(function () {
+                    message.remove();
+                }, 500);
+
+            });
+
+        }, 3000);
+
+
+        // Prevent accidental double-click form submissions
+        document.querySelectorAll("form").forEach(function(form) {
+
+            form.addEventListener("submit", function() {
+
+                const button =
+                    form.querySelector("button[type='submit']");
+
+                if (button) {
+
+                    button.disabled = true;
+
+                    setTimeout(function() {
+                        button.disabled = false;
+                    }, 1000);
+
+                }
+
+            });
+
+        });
+
+    </script>
+
+</body>
+
+</html>

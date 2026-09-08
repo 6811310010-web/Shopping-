@@ -1,9 +1,5 @@
-# Homework for the project
-
-# reduce stack 
-# insert it 
-# add the discussion or categories 
-# add image to the product. 
-# when you want to delete the amount of product , you can 
-# change background 
-# categories should be different bg-color , price , and stock 
+Flask
+pymongo
+dnspython
+folium
+gunicorn

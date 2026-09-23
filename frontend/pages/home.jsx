@@ -79,9 +79,7 @@ function Icon({ name, size = 20 }) {
       </>
     ),
 
-    check: (
-      <path d="m5 12 4 4L19 6" />
-    ),
+    check: <path d="m5 12 4 4L19 6" />,
   };
 
   return <svg {...props}>{paths[name]}</svg>;
@@ -114,17 +112,18 @@ function Home() {
     }
   };
 
+  // Render product image from deployed Flask backend
   const getImageUrl = (product) => {
-  if (!product?.image) return "";
+    if (!product?.image) return "";
 
-  const imagePath = String(product.image)
-    .replace(/\\/g, "/")
-    .split("/")
-    .map((part) => encodeURIComponent(part))
-    .join("/");
+    const imagePath = String(product.image)
+      .replace(/\\/g, "/")
+      .split("/")
+      .map((part) => encodeURIComponent(part))
+      .join("/");
 
-  return `http://127.0.0.1:5000/static/${imagePath}`;
-};
+    return `https://shopping-backend-6gpx.onrender.com/static/${imagePath}`;
+  };
 
   const showToast = (message) => {
     setToast(message);
@@ -142,7 +141,7 @@ function Home() {
       }
 
       const response = await fetch(
-        `http://127.0.0.1:5000/api/products/${product.id}/decrease-stock`,
+        `https://shopping-backend-6gpx.onrender.com/api/products/${product.id}/decrease-stock`,
         {
           method: "POST",
         }
@@ -155,8 +154,7 @@ function Home() {
         return;
       }
 
-      const cart =
-        JSON.parse(localStorage.getItem("cart")) || [];
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
       const existingProduct = cart.find(
         (item) => item.id === product.id
@@ -174,14 +172,9 @@ function Home() {
         });
       }
 
-      localStorage.setItem(
-        "cart",
-        JSON.stringify(cart)
-      );
+      localStorage.setItem("cart", JSON.stringify(cart));
 
-      window.dispatchEvent(
-        new Event("cartUpdated")
-      );
+      window.dispatchEvent(new Event("cartUpdated"));
 
       setProducts((currentProducts) =>
         currentProducts.map((item) =>
@@ -217,16 +210,11 @@ function Home() {
   return (
     <main className="premium-store">
 
-      {/* ==================================================
-          HERO
-      ================================================== */}
-
+      {/* HERO */}
       <section className="premium-hero">
-
         <div className="hero-noise"></div>
 
         <div className="hero-inner">
-
           <div className="hero-left">
 
             <div className="hero-kicker">
@@ -248,27 +236,19 @@ function Home() {
             </p>
 
             <div className="premium-search">
-
-              <Icon
-                name="search"
-                size={18}
-              />
+              <Icon name="search" size={18} />
 
               <input
                 type="text"
                 value={search}
                 placeholder="Search products..."
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
+                onChange={(e) => setSearch(e.target.value)}
               />
 
               <span>⌘ K</span>
-
             </div>
 
             <div className="hero-actions">
-
               <button
                 onClick={() =>
                   document
@@ -279,36 +259,20 @@ function Home() {
                 }
               >
                 Explore collection
-
-                <Icon
-                  name="arrow"
-                  size={17}
-                />
+                <Icon name="arrow" size={17} />
               </button>
 
               <div className="hero-stat">
-                <strong>
-                  {products.length}
-                </strong>
-
-                <span>
-                  PRODUCTS
-                </span>
+                <strong>{products.length}</strong>
+                <span>PRODUCTS</span>
               </div>
-
             </div>
-
           </div>
 
-
           {/* HERO IMAGE */}
-
           <div className="premium-hero-visual">
-
             <div className="visual-grid"></div>
-
             <div className="visual-glow"></div>
-
             <div className="visual-ring ring-one"></div>
             <div className="visual-ring ring-two"></div>
 
@@ -337,57 +301,38 @@ function Home() {
               <small>STORE</small>
               <strong>CS / 26</strong>
             </div>
-
           </div>
-
         </div>
-
 
         <div className="hero-bottom-line">
-
           <span>SCROLL TO EXPLORE</span>
-
           <div></div>
-
           <span>THAILAND</span>
-
         </div>
-
       </section>
 
-
-      {/* ==================================================
-          CATEGORY
-      ================================================== */}
-
+      {/* CATEGORY */}
       <section className="category-section-premium">
-
         <div className="section-heading-premium">
-
           <div>
-
-            <span>
-              01 / COLLECTION
-            </span>
+            <span>01 / COLLECTION</span>
 
             <h2>
               Find your
               <br />
               category.
             </h2>
-
           </div>
 
           <p>
             Explore our products through
             simple, focused collections.
           </p>
-
         </div>
-
 
         <div className="category-grid-premium">
 
+          {/* ALL PRODUCTS */}
           <button
             className={
               category === "All"
@@ -396,7 +341,6 @@ function Home() {
             }
             onClick={() => setCategory("All")}
           >
-
             <span className="category-index">
               01
             </span>
@@ -406,30 +350,22 @@ function Home() {
             </div>
 
             <div className="category-content-premium">
+              <small>COLLECTION</small>
 
-              <small>
-                COLLECTION
-              </small>
-
-              <strong>
-                All Products
-              </strong>
+              <strong>All Products</strong>
 
               <span>
                 Everything in one place
               </span>
-
             </div>
 
             <div className="category-arrow-premium">
               <Icon name="arrow" size={18} />
             </div>
-
           </button>
 
-
+          {/* CATEGORIES */}
           {categories.map((item, index) => (
-
             <button
               key={item}
               className={
@@ -437,11 +373,8 @@ function Home() {
                   ? "premium-category active"
                   : "premium-category"
               }
-              onClick={() =>
-                setCategory(item)
-              }
+              onClick={() => setCategory(item)}
             >
-
               <span className="category-index">
                 {String(index + 2).padStart(2, "0")}
               </span>
@@ -451,70 +384,50 @@ function Home() {
               </div>
 
               <div className="category-content-premium">
+                <small>COLLECTION</small>
 
-                <small>
-                  COLLECTION
-                </small>
-
-                <strong>
-                  {item}
-                </strong>
+                <strong>{item}</strong>
 
                 <span>
                   Explore the collection
                 </span>
-
               </div>
 
               <div className="category-arrow-premium">
                 <Icon name="arrow" size={18} />
               </div>
-
             </button>
-
           ))}
-
         </div>
-
       </section>
 
-
-      {/* ==================================================
-          FEATURED
-      ================================================== */}
-
+      {/* FEATURED */}
       {products.length > 0 && (
-
         <section className="featured-section">
-
           <div className="featured-image">
-
             <div className="featured-orb"></div>
 
             <img
               src={getImageUrl(products[0])}
               alt={products[0].name}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+              }}
             />
 
             <span className="featured-number">
               FEATURED / 01
             </span>
-
           </div>
 
           <div className="featured-content">
-
             <span className="featured-label">
               FEATURED PRODUCT
             </span>
 
-            <h2>
-              {products[0].name}
-            </h2>
+            <h2>{products[0].name}</h2>
 
-            <p>
-              {products[0].description}
-            </p>
+            <p>{products[0].description}</p>
 
             <div className="featured-meta">
 
@@ -522,10 +435,7 @@ function Home() {
                 <small>PRICE</small>
 
                 <strong>
-                  $
-                  {Number(
-                    products[0].price
-                  ).toFixed(2)}
+                  ${Number(products[0].price).toFixed(2)}
                 </strong>
               </div>
 
@@ -534,6 +444,7 @@ function Home() {
 
                 <span>
                   <i></i>
+
                   {products[0].stock > 0
                     ? `${products[0].stock} in stock`
                     : "Sold out"}
@@ -544,97 +455,57 @@ function Home() {
 
             <button
               className="featured-button"
-              disabled={
-                products[0].stock <= 0
-              }
-              onClick={() =>
-                addToCart(products[0])
-              }
+              disabled={products[0].stock <= 0}
+              onClick={() => addToCart(products[0])}
             >
-
               {products[0].stock > 0
                 ? "Add to cart"
                 : "Sold out"}
 
-              <Icon
-                name="arrow"
-                size={17}
-              />
-
+              <Icon name="arrow" size={17} />
             </button>
-
           </div>
-
         </section>
-
       )}
 
-
-      {/* ==================================================
-          PRODUCTS
-      ================================================== */}
-
+      {/* PRODUCTS */}
       <section className="collection-section">
 
         <div className="collection-heading">
-
           <div>
+            <span>02 / PRODUCTS</span>
 
-            <span>
-              02 / PRODUCTS
-            </span>
-
-            <h2>
-              The collection.
-            </h2>
-
+            <h2>The collection.</h2>
           </div>
 
           <div className="collection-count">
             {products.length}
             <span> ITEMS</span>
           </div>
-
         </div>
 
-
         {loading ? (
-
           <div className="premium-loading">
-
             <div></div>
 
             <span>
               Loading collection...
             </span>
-
           </div>
-
         ) : products.length === 0 ? (
-
           <div className="premium-empty">
+            <Icon name="package" size={42} />
 
-            <Icon
-              name="package"
-              size={42}
-            />
-
-            <h3>
-              No products found
-            </h3>
+            <h3>No products found</h3>
 
             <p>
               Try another search or category.
             </p>
-
           </div>
-
         ) : (
-
           <div className="premium-product-grid">
 
             {products.map((product, index) => (
-
               <article
                 className="premium-product"
                 key={product.id}
@@ -656,8 +527,7 @@ function Home() {
                     src={getImageUrl(product)}
                     alt={product.name}
                     onError={(e) => {
-                      e.currentTarget.style.display =
-                        "none";
+                      e.currentTarget.style.display = "none";
                     }}
                   />
 
@@ -666,35 +536,22 @@ function Home() {
                       SOLD OUT
                     </span>
                   )}
-
                 </div>
-
 
                 <div className="premium-product-info">
 
-                  <h3>
-                    {product.name}
-                  </h3>
+                  <h3>{product.name}</h3>
 
-                  <p>
-                    {product.description}
-                  </p>
+                  <p>{product.description}</p>
 
                   <div className="premium-product-bottom">
 
                     <div>
-
-                      <small>
-                        PRICE
-                      </small>
+                      <small>PRICE</small>
 
                       <strong>
-                        $
-                        {Number(
-                          product.price
-                        ).toFixed(2)}
+                        ${Number(product.price).toFixed(2)}
                       </strong>
-
                     </div>
 
                     <span
@@ -709,22 +566,14 @@ function Home() {
                       {product.stock > 0
                         ? `${product.stock} available`
                         : "Unavailable"}
-
                     </span>
-
                   </div>
-
 
                   <button
                     className="premium-add"
-                    disabled={
-                      product.stock <= 0
-                    }
-                    onClick={() =>
-                      addToCart(product)
-                    }
+                    disabled={product.stock <= 0}
+                    onClick={() => addToCart(product)}
                   >
-
                     <span>
                       {product.stock > 0
                         ? "Add to cart"
@@ -741,26 +590,17 @@ function Home() {
                         size={16}
                       />
                     </b>
-
                   </button>
 
                 </div>
-
               </article>
-
             ))}
 
           </div>
-
         )}
-
       </section>
 
-
-      {/* ==================================================
-          FINAL CTA
-      ================================================== */}
-
+      {/* FINAL CTA */}
       <section className="final-premium">
 
         <div className="final-grid">
@@ -791,41 +631,30 @@ function Home() {
             <button
               onClick={() =>
                 document
-                  .querySelector(
-                    ".collection-section"
-                  )
+                  .querySelector(".collection-section")
                   ?.scrollIntoView({
                     behavior: "smooth",
                   })
               }
             >
               Explore products
-              <Icon
-                name="arrow"
-                size={17}
-              />
+
+              <Icon name="arrow" size={17} />
             </button>
 
           </div>
 
           <div className="final-mark">
-
             <img
               src={heroImage}
               alt=""
             />
-
           </div>
 
         </div>
-
       </section>
 
-
-      {/* ==================================================
-          FOOTER
-      ================================================== */}
-
+      {/* FOOTER */}
       <footer className="premium-footer">
 
         <div>
@@ -844,13 +673,8 @@ function Home() {
 
       </footer>
 
-
-      {/* ==================================================
-          TOAST
-      ================================================== */}
-
+      {/* TOAST */}
       {toast && (
-
         <div className="premium-toast">
 
           <span>
@@ -863,7 +687,6 @@ function Home() {
           {toast}
 
         </div>
-
       )}
 
     </main>

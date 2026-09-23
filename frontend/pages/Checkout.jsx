@@ -59,7 +59,7 @@ function Checkout() {
       setLoading(true);
 
       const response = await axios.post(
-        "http://127.0.0.1:5000/api/orders",
+        "http://https://shopping-backend-6gpx.onrender.com/api/orders",
         {
           customer: form,
           items: cart,
@@ -302,7 +302,7 @@ function Checkout() {
 
                   {item.image ? (
                     <img
-                      src={`http://127.0.0.1:5000/static/${item.image}`}
+                      src={`http://https://shopping-backend-6gpx.onrender.com/static/${item.image}`}
                       alt={item.name}
                     />
                   ) : (

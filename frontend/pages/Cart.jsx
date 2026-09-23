@@ -139,7 +139,7 @@ function Cart() {
   const getImageUrl = (item) => {
     if (!item.image) return "";
 
-    return `http://127.0.0.1:5000/static/${item.image}`;
+    return `http://https://shopping-backend-6gpx.onrender.com/static/${item.image}`;
   };
 
   return (

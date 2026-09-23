@@ -13,7 +13,7 @@ function MyOrders() {
   const loadOrders = async () => {
     try {
       const response = await axios.get(
-        "http://127.0.0.1:5000/api/orders"
+        "http://https://shopping-backend-6gpx.onrender.com/api/orders"
       );
 
       if (response.data.success) {
@@ -29,7 +29,7 @@ function MyOrders() {
   const getImageUrl = (item) => {
     if (!item?.image) return "";
 
-    return `http://127.0.0.1:5000/static/${item.image}`;
+    return `http://https://shopping-backend-6gpx.onrender.com/static/${item.image}`;
   };
 
   return (

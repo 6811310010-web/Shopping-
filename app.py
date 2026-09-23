@@ -9,7 +9,10 @@ app.secret_key = "shopping-store-secret-key"
 CORS(
     app,
     supports_credentials=True,
-    origins=["http://localhost:5173"]
+    origins=[
+        "http://localhost:5173",
+        "https://cs-tech-store.onrender.com"
+    ]
 )
 
 db = get_db()

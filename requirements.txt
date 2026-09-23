@@ -4,3 +4,4 @@ pymongo
 dnspython
 folium
 gunicorn
+python-dotenv

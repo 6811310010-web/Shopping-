@@ -1,137 +1,601 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
 
-{% block title %}Shopping Cart - CS Tech Store{% endblock %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Shopping Cart - CS Tech Store</title>
+
+    <!-- Font Awesome -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    >
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px;
+            font-family: Arial, sans-serif;
+            background: #f5f6f7;
+            color: #111217;
+        }
+
+        .cart-container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            margin-bottom: 30px;
+        }
+
+        .header span {
+            color: #087f5b;
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .header h1 {
+            margin: 8px 0;
+            font-size: 34px;
+        }
+
+        .header p {
+            color: #777;
+        }
+
+        /* =========================
+           CART LAYOUT
+        ========================= */
+
+        .cart-layout {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 25px;
+            align-items: start;
+        }
+
+        .cart-items {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 10px 35px rgba(0, 0, 0, .08);
+        }
+
+        /* =========================
+           CART ITEM
+        ========================= */
+
+        .cart-item {
+            display: grid;
+            grid-template-columns: 100px 1fr auto;
+            gap: 20px;
+            align-items: center;
+
+            padding: 20px 0;
+
+            border-bottom: 1px solid #e5e8ea;
+        }
+
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+
+        .cart-item-image {
+            width: 100px;
+            height: 100px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            background: #f7f8f9;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .cart-item-image img {
+            width: 85%;
+            height: 85%;
+            object-fit: contain;
+        }
+
+        .cart-item-info h3 {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        .cart-item-info p {
+            margin: 0 0 15px;
+            color: #087f5b;
+            font-weight: bold;
+        }
+
+        /* =========================
+           QUANTITY
+        ========================= */
+
+        .quantity {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .quantity button {
+            width: 32px;
+            height: 32px;
+
+            border: 1px solid #d9dde1;
+            background: white;
+
+            border-radius: 6px;
+
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .quantity button:hover {
+            background: #f0f2f3;
+        }
+
+        .quantity span {
+            min-width: 25px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* =========================
+           REMOVE BUTTON
+        ========================= */
+
+        .remove-button {
+            margin-top: 12px;
+
+            border: none;
+            background: transparent;
+
+            color: #d33;
+            font-size: 13px;
+
+            cursor: pointer;
+        }
+
+        .remove-button:hover {
+            text-decoration: underline;
+        }
+
+        /* =========================
+           ITEM TOTAL
+        ========================= */
+
+        .item-total {
+            font-size: 17px;
+            font-weight: bold;
+            color: #063b2c;
+        }
+
+        /* =========================
+           SUMMARY
+        ========================= */
+
+        .cart-summary {
+            background: white;
+
+            padding: 25px;
+
+            border-radius: 16px;
+
+            box-shadow: 0 10px 35px rgba(0, 0, 0, .08);
+
+            position: sticky;
+            top: 20px;
+        }
+
+        .cart-summary h2 {
+            margin-top: 0;
+            margin-bottom: 25px;
+            font-size: 22px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+
+            padding: 10px 0;
+
+            color: #555;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+
+            margin-top: 15px;
+            padding-top: 20px;
+
+            border-top: 2px solid #e1e4e6;
+
+            font-size: 21px;
+            font-weight: bold;
+        }
+
+        .summary-total span:last-child {
+            color: #063b2c;
+        }
+
+        /* =========================
+           CHECKOUT BUTTON
+        ========================= */
+
+        .checkout-button {
+            display: block;
+
+            width: 100%;
+
+            margin-top: 25px;
+
+            padding: 15px;
+
+            border: none;
+            border-radius: 8px;
+
+            background: #063b2c;
+            color: white;
+
+            text-align: center;
+            text-decoration: none;
+
+            font-size: 16px;
+            font-weight: bold;
+
+            cursor: pointer;
+
+            transition: .2s;
+        }
+
+        .checkout-button:hover {
+            background: #07533e;
+            transform: translateY(-1px);
+        }
+
+        /* =========================
+           SECURE TEXT
+        ========================= */
+
+        .secure-text {
+            text-align: center;
+
+            margin-top: 15px;
+
+            color: #777;
+
+            font-size: 13px;
+        }
+
+        .secure-text i {
+            margin-right: 5px;
+        }
+
+        /* =========================
+           CONTINUE SHOPPING
+        ========================= */
+
+        .continue-shopping {
+            display: inline-block;
+
+            margin-top: 20px;
+
+            color: #063b2c;
+
+            text-decoration: none;
+
+            font-weight: bold;
+        }
+
+        .continue-shopping:hover {
+            text-decoration: underline;
+        }
+
+        /* =========================
+           CLEAR CART
+        ========================= */
+
+        .clear-cart-form {
+            margin-top: 20px;
+        }
+
+        .clear-cart-button {
+            width: 100%;
+
+            padding: 12px;
+
+            border: 1px solid #d33;
+            border-radius: 8px;
+
+            background: white;
+            color: #d33;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
+        .clear-cart-button:hover {
+            background: #fff5f5;
+        }
+
+        /* =========================
+           EMPTY CART
+        ========================= */
+
+        .empty-cart {
+            background: white;
+
+            padding: 60px 30px;
+
+            border-radius: 16px;
+
+            text-align: center;
+
+            box-shadow: 0 10px 35px rgba(0, 0, 0, .08);
+        }
+
+        .empty-cart i {
+            font-size: 55px;
+            color: #aaa;
+            margin-bottom: 20px;
+        }
+
+        .empty-cart h2 {
+            margin-bottom: 10px;
+        }
+
+        .empty-cart p {
+            color: #777;
+        }
+
+        .shop-button {
+            display: inline-block;
+
+            margin-top: 20px;
+
+            padding: 13px 22px;
+
+            background: #063b2c;
+            color: white;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: bold;
+        }
+
+        .shop-button:hover {
+            background: #07533e;
+        }
+
+        /* =========================
+           FLASH MESSAGES
+        ========================= */
+
+        .flash {
+            max-width: 1100px;
+            margin: 0 auto 20px;
+
+            padding: 14px 18px;
+
+            border-radius: 8px;
+
+            font-weight: bold;
+        }
+
+        .flash.success {
+            background: #e8f7ef;
+            color: #087f5b;
+        }
+
+        .flash.error {
+            background: #fdeaea;
+            color: #c62828;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 800px) {
+
+            .cart-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .cart-summary {
+                position: static;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            body {
+                padding: 20px 12px;
+            }
+
+            .cart-item {
+                grid-template-columns: 75px 1fr;
+            }
+
+            .cart-item-image {
+                width: 75px;
+                height: 75px;
+            }
+
+            .item-total {
+                grid-column: 2;
+            }
+
+            .header h1 {
+                font-size: 28px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- =========================
+         FLASH MESSAGES
+    ========================= -->
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% if messages %}
+
+            {% for category, message in messages %}
+
+                <div class="flash {{ category }}">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+    {% endwith %}
 
 
-{% block content %}
+    <div class="cart-container">
 
-<section class="cart-section">
+        <!-- =========================
+             HEADER
+        ========================= -->
 
-    <div class="cart-header">
+        <div class="header">
 
-        <div>
-
-            <span class="section-label">
-                SHOPPING CART
-            </span>
+            <span>CS TECH STORE</span>
 
             <h1>
-                Your Cart
+                🛍️ Shopping Cart
             </h1>
+
+            <p>
+                Review your items before checkout.
+            </p>
 
         </div>
 
-        <a
-            href="{{ url_for('index') }}"
-            class="continue-button"
-        >
 
-            <i class="fa-solid fa-arrow-left"></i>
+        {% if cart_items %}
 
-            Continue Shopping
-
-        </a>
-
-    </div>
+            <div class="cart-layout">
 
 
-    {% if cart_items %}
+                <!-- =========================
+                     CART ITEMS
+                ========================= -->
 
-        <div class="cart-layout">
+                <section class="cart-items">
 
-            <!-- ================= CART ITEMS ================= -->
+                    {% for item in cart_items %}
 
-            <div class="cart-items">
-
-                {% for item in cart_items %}
-
-                    <div class="cart-item">
-
-                        <!-- Image -->
-
-                        <div class="cart-image">
-
-                            <img
-                                src="{{ url_for('static', filename=item.image) }}"
-                                alt="{{ item.name }}"
-                            >
-
-                        </div>
+                        <div class="cart-item">
 
 
-                        <!-- Product -->
+                            <!-- IMAGE -->
 
-                        <div class="cart-product">
+                            <div class="cart-item-image">
 
-                            <span class="product-category">
-                                Product
-                            </span>
+                                <img
+                                    src="{{ url_for('static', filename=item.image) }}"
+                                    alt="{{ item.name }}"
+                                    onerror="this.style.display='none';"
+                                >
 
-                            <h3>
-                                {{ item.name }}
-                            </h3>
-
-                            <p>
-                                ${{ "%.2f"|format(item.price) }}
-                                each
-                            </p>
-
-                        </div>
+                            </div>
 
 
-                        <!-- Quantity -->
+                            <!-- PRODUCT INFORMATION -->
 
-                        <div class="quantity-section">
+                            <div class="cart-item-info">
 
-                            <span class="quantity-label">
-                                Quantity
-                            </span>
+                                <h3>
+                                    {{ item.name }}
+                                </h3>
 
-                            <div class="quantity-controls">
+                                <p>
+                                    ${{ "%.2f"|format(item.price) }}
+                                </p>
 
-                                <!-- MINUS -->
+
+                                <!-- QUANTITY -->
+
+                                <div class="quantity">
+
+                                    <!-- DECREASE -->
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('decrease_quantity', item_id=item._id) }}"
+                                        style="display:inline;"
+                                    >
+
+                                        <button type="submit">
+                                            −
+                                        </button>
+
+                                    </form>
+
+
+                                    <span>
+                                        {{ item.quantity }}
+                                    </span>
+
+
+                                    <!-- INCREASE -->
+
+                                    <form
+                                        method="POST"
+                                        action="{{ url_for('increase_quantity', item_id=item._id) }}"
+                                        style="display:inline;"
+                                    >
+
+                                        <button type="submit">
+                                            +
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+
+                                <!-- REMOVE -->
 
                                 <form
                                     method="POST"
-                                    action="{{ url_for(
-                                        'decrease_quantity',
-                                        item_id=item._id
-                                    ) }}"
+                                    action="{{ url_for('remove_item', item_id=item._id) }}"
                                 >
 
                                     <button
                                         type="submit"
-                                        class="quantity-button"
+                                        class="remove-button"
                                     >
-                                        −
-                                    </button>
 
-                                </form>
+                                        <i class="fa-solid fa-trash"></i>
 
+                                        Remove
 
-                                <span class="quantity">
-                                    {{ item.quantity }}
-                                </span>
-
-
-                                <!-- PLUS -->
-
-                                <form
-                                    method="POST"
-                                    action="{{ url_for(
-                                        'increase_quantity',
-                                        item_id=item._id
-                                    ) }}"
-                                >
-
-                                    <button
-                                        type="submit"
-                                        class="quantity-button"
-                                        {% if item.stock <= 0 %}
-                                            disabled
-                                        {% endif %}
-                                    >
-                                        +
                                     </button>
 
                                 </form>
@@ -139,207 +603,186 @@
                             </div>
 
 
-                            {% if item.stock <= 0 %}
+                            <!-- SUBTOTAL -->
 
-                                <small class="no-stock">
-                                    Maximum stock reached
-                                </small>
+                            <div class="item-total">
 
-                            {% endif %}
-
-                        </div>
-
-
-                        <!-- Subtotal -->
-
-                        <div class="cart-subtotal">
-
-                            <span>
-                                Subtotal
-                            </span>
-
-                            <strong>
                                 ${{ "%.2f"|format(item.subtotal) }}
-                            </strong>
+
+                            </div>
+
 
                         </div>
 
+                    {% endfor %}
 
-                        <!-- DELETE -->
 
-                        <form
-                            method="POST"
-                            action="{{ url_for(
-                                'remove_item',
-                                item_id=item._id
-                            ) }}"
-                        >
+                    <!-- CONTINUE SHOPPING -->
 
-                            <button
-                                type="submit"
-                                class="delete-button"
-                                title="Remove item"
-                            >
+                    <a
+                        href="{{ url_for('index') }}"
+                        class="continue-shopping"
+                    >
 
-                                <i class="fa-solid fa-trash"></i>
+                        ← Continue Shopping
 
-                            </button>
+                    </a>
 
-                        </form>
+                </section>
+
+
+
+                <!-- =========================
+                     CART SUMMARY
+                ========================= -->
+
+                <aside class="cart-summary">
+
+                    <h2>
+                        Order Summary
+                    </h2>
+
+
+                    <div class="summary-row">
+
+                        <span>
+                            Items
+                        </span>
+
+                        <span>
+                            {{ cart_count }}
+                        </span>
 
                     </div>
 
-                {% endfor %}
+
+                    <div class="summary-row">
+
+                        <span>
+                            Subtotal
+                        </span>
+
+                        <span>
+                            ${{ "%.2f"|format(total) }}
+                        </span>
+
+                    </div>
 
 
-                <!-- CLEAR CART -->
+                    <div class="summary-row">
 
-                <form
-                    method="POST"
-                    action="{{ url_for('clear_cart') }}"
-                    class="clear-cart-form"
-                >
+                        <span>
+                            Shipping
+                        </span>
 
-                    <button
-                        type="submit"
-                        class="clear-button"
+                        <span>
+                            Free
+                        </span>
+
+                    </div>
+
+
+                    <div class="summary-total">
+
+                        <span>
+                            Total
+                        </span>
+
+                        <span>
+                            ${{ "%.2f"|format(total) }}
+                        </span>
+
+                    </div>
+
+
+                    <!-- =========================
+                         CHECKOUT BUTTON
+                    ========================= -->
+
+                    <a
+                        href="{{ url_for('checkout') }}"
+                        class="checkout-button"
                     >
 
-                        <i class="fa-solid fa-trash-can"></i>
+                        <i class="fa-solid fa-credit-card"></i>
 
-                        Clear Cart
+                        Proceed to Checkout
 
-                    </button>
+                    </a>
 
-                </form>
+
+                    <p class="secure-text">
+
+                        <i class="fa-solid fa-lock"></i>
+
+                        Secure checkout
+
+                    </p>
+
+
+                    <!-- =========================
+                         CLEAR CART
+                    ========================= -->
+
+                    <form
+                        method="POST"
+                        action="{{ url_for('clear_cart') }}"
+                        class="clear-cart-form"
+                    >
+
+                        <button
+                            type="submit"
+                            class="clear-cart-button"
+                        >
+
+                            <i class="fa-solid fa-trash"></i>
+
+                            Clear Cart
+
+                        </button>
+
+                    </form>
+
+                </aside>
 
             </div>
 
 
-            <!-- ================= ORDER SUMMARY ================= -->
-
-            <aside class="order-summary">
-
-                <h2>
-                    Order Summary
-                </h2>
+        {% else %}
 
 
-                <div class="summary-row">
+            <!-- =========================
+                 EMPTY CART
+            ========================= -->
 
-                    <span>
-                        Items
-                    </span>
-
-                    <span>
-                        {{ cart_count }}
-                    </span>
-
-                </div>
-
-
-                <div class="summary-row">
-
-                    <span>
-                        Subtotal
-                    </span>
-
-                    <span>
-                        ${{ "%.2f"|format(total) }}
-                    </span>
-
-                </div>
-
-
-                <div class="summary-row">
-
-                    <span>
-                        Shipping
-                    </span>
-
-                    <span class="free">
-                        FREE
-                    </span>
-
-                </div>
-
-
-                <hr>
-
-
-                <div class="summary-total">
-
-                    <span>
-                        Total
-                    </span>
-
-                    <strong>
-                        ${{ "%.2f"|format(total) }}
-                    </strong>
-
-                </div>
-
-
-                <button
-                    class="checkout-button"
-                    onclick="alert('Checkout feature coming soon!')"
-                >
-
-                    <i class="fa-solid fa-credit-card"></i>
-
-                    Proceed to Checkout
-
-                </button>
-
-
-                <p class="secure-text">
-
-                    <i class="fa-solid fa-lock"></i>
-
-                    Secure checkout
-
-                </p>
-
-            </aside>
-
-        </div>
-
-
-    {% else %}
-
-        <!-- ================= EMPTY CART ================= -->
-
-        <div class="empty-cart">
-
-            <div class="empty-cart-icon">
+            <div class="empty-cart">
 
                 <i class="fa-solid fa-cart-shopping"></i>
 
+                <h2>
+                    Your cart is empty
+                </h2>
+
+                <p>
+                    You have not added any products yet.
+                </p>
+
+                <a
+                    href="{{ url_for('index') }}"
+                    class="shop-button"
+                >
+
+                    ← Continue Shopping
+
+                </a>
+
             </div>
 
-            <h2>
-                Your cart is empty
-            </h2>
 
-            <p>
-                You haven't added anything to your cart yet.
-            </p>
+        {% endif %}
 
-            <a
-                href="{{ url_for('index') }}"
-                class="hero-button"
-            >
+    </div>
 
-                <i class="fa-solid fa-store"></i>
+</body>
 
-                Start Shopping
-
-            </a>
-
-        </div>
-
-    {% endif %}
-
-</section>
-
-{% endblock %}
+</html>

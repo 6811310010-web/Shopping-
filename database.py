@@ -1,15 +1,23 @@
 import os
+from dotenv import load_dotenv
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 
 # ============================================================
-# MONGODB ATLAS CONNECTION
+# LOAD ENVIRONMENT
 # ============================================================
+
+load_dotenv()
 
 MONGO_URI = os.getenv("MONGO_URI")
 
 if not MONGO_URI:
     raise ValueError("❌ MONGO_URI environment variable is not set.")
+
+
+# ============================================================
+# MONGODB ATLAS CONNECTION
+# ============================================================
 
 client = MongoClient(
     MONGO_URI,
@@ -18,7 +26,6 @@ client = MongoClient(
     connectTimeoutMS=10000
 )
 
-# Test connection
 try:
     client.admin.command("ping")
     print("✅ Successfully connected to MongoDB Atlas!")
@@ -28,22 +35,21 @@ except Exception as e:
     print(e)
     raise
 
-# Database
+
+# ============================================================
+# DATABASE
+# ============================================================
+
 db = client["shop_db"]
 
 
 # ============================================================
-# CREATE / SEED PRODUCTS
+# CREATE / UPDATE PRODUCTS
 # ============================================================
 
 def seed_products():
 
     products_collection = db.products
-
-    # Only seed if collection is empty
-    if products_collection.count_documents({}) > 0:
-        print("ℹ️ Products already exist.")
-        return
 
     products = [
         {
@@ -120,9 +126,35 @@ def seed_products():
         }
     ]
 
-    products_collection.insert_many(products)
+    # ========================================================
+    # INSERT OR UPDATE PRODUCTS
+    # ========================================================
 
-    print("✅ Products added to MongoDB.")
+    for product in products:
+
+        existing = products_collection.find_one({
+            "name": product["name"]
+        })
+
+        if existing:
+
+            products_collection.update_one(
+                {"_id": existing["_id"]},
+                {
+                    "$set": {
+                        "description": product["description"],
+                        "price": product["price"],
+                        "category": product["category"],
+                        "image": product["image"]
+                    }
+                }
+            )
+
+        else:
+
+            products_collection.insert_one(product)
+
+    print("✅ Products checked and image paths updated.")
 
 
 # ============================================================
@@ -131,7 +163,6 @@ def seed_products():
 
 def get_db():
 
-    # Seed products when application starts
     seed_products()
 
     return db

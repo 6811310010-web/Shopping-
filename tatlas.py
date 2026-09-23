@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 
 # Make sure to replace YOUR_PASSWORD with the password you set for user 'shopping'
-uri = "mongodb+srv://kaungthihakyaw256_db_user:kaung12345@cluster0.1ruan70.mongodb.net/?appName=Cluster0"
+uri = "mongodb+srv://kaungthihakyaw256_db_user:kaung1234567@cluster0.1ruan70.mongodb.net/?appName=Cluster0"
 
 try:
     print("🔄 Connecting to MongoDB Atlas...")

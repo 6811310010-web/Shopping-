@@ -1,6 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { getProducts } from "../services/api";
 import heroImage from "../src/assets/hero.png";
+
+const API_BASE = "https://shopping-backend-6gpx.onrender.com";
 
 function Icon({ name, size = 20 }) {
   const props = {
@@ -86,44 +89,171 @@ function Icon({ name, size = 20 }) {
 }
 
 function Home() {
-  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
+
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+
+  /*
+    ==========================================================
+    LOAD PRODUCTS
+    ==========================================================
+  */
 
   useEffect(() => {
     loadProducts();
-  }, [search, category]);
+  }, []);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
+      setError("");
 
-      const data = await getProducts(search, category);
+      /*
+        Always get ALL products from the backend.
 
-      setProducts(data.products || []);
-      setCategories(data.categories || []);
-    } catch (error) {
-      console.error("Error loading products:", error);
+        Filtering is done inside React.
+        This makes the "All" category reliable.
+      */
+      const data = await getProducts("", "All");
+
+      const productList = Array.isArray(data?.products)
+        ? data.products
+        : Array.isArray(data)
+        ? data
+        : [];
+
+      setAllProducts(productList);
+
+      /*
+        Use backend categories if available.
+        Otherwise create categories from the products.
+      */
+      let backendCategories = Array.isArray(data?.categories)
+        ? data.categories
+        : [];
+
+      if (backendCategories.length === 0) {
+        backendCategories = [
+          ...new Set(
+            productList
+              .map((product) => product.category)
+              .filter(Boolean)
+          ),
+        ];
+      }
+
+      setCategories(backendCategories);
+    } catch (err) {
+      console.error("Error loading products:", err);
+      setError("Could not load products. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Render product image from deployed Flask backend
+  /*
+    ==========================================================
+    IMAGE URL
+    ==========================================================
+  */
+
   const getImageUrl = (product) => {
     if (!product?.image) return "";
 
-    const imagePath = String(product.image)
-      .replace(/\\/g, "/")
+    let imagePath = String(product.image)
+      .trim()
+      .replace(/\\/g, "/");
+
+    imagePath = imagePath.replace(
+      /^https?:\/\/[^/]+/i,
+      ""
+    );
+
+    imagePath = imagePath.replace(/^\/+/, "");
+
+    imagePath = imagePath.replace(
+      /^static\//i,
+      ""
+    );
+
+    if (!/^images\//i.test(imagePath)) {
+      imagePath = `images/${imagePath}`;
+    }
+
+    return `${API_BASE}/static/${imagePath
       .split("/")
       .map((part) => encodeURIComponent(part))
-      .join("/");
-
-    return `https://shopping-backend-6gpx.onrender.com/static/${imagePath}`;
+      .join("/")}`;
   };
+
+  /*
+    ==========================================================
+    FILTER PRODUCTS
+    ==========================================================
+  */
+
+  const products = useMemo(() => {
+    let result = [...allProducts];
+
+    /*
+      CATEGORY
+    */
+
+    if (category !== "All") {
+      result = result.filter((product) => {
+        return (
+          String(product.category || "")
+            .trim()
+            .toLowerCase() ===
+          String(category)
+            .trim()
+            .toLowerCase()
+        );
+      });
+    }
+
+    /*
+      SEARCH
+    */
+
+    const searchValue = search.trim().toLowerCase();
+
+    if (searchValue) {
+      result = result.filter((product) => {
+        const name = String(
+          product.name || ""
+        ).toLowerCase();
+
+        const description = String(
+          product.description || ""
+        ).toLowerCase();
+
+        const productCategory = String(
+          product.category || ""
+        ).toLowerCase();
+
+        return (
+          name.includes(searchValue) ||
+          description.includes(searchValue) ||
+          productCategory.includes(searchValue)
+        );
+      });
+    }
+
+    return result;
+  }, [allProducts, category, search]);
+
+  /*
+    ==========================================================
+    TOAST
+    ==========================================================
+  */
 
   const showToast = (message) => {
     setToast(message);
@@ -133,15 +263,27 @@ function Home() {
     }, 2200);
   };
 
+  /*
+    ==========================================================
+    ADD TO CART
+    ==========================================================
+  */
+
   const addToCart = async (product) => {
     try {
-      if (product.stock <= 0) {
+      const currentStock = Number(product.stock) || 0;
+
+      if (currentStock <= 0) {
         showToast("This product is out of stock.");
         return;
       }
 
+      /*
+        Tell backend to reduce stock.
+      */
+
       const response = await fetch(
-        `https://shopping-backend-6gpx.onrender.com/api/products/${product.id}/decrease-stock`,
+        `${API_BASE}/api/products/${product.id}/decrease-stock`,
         {
           method: "POST",
         }
@@ -149,131 +291,282 @@ function Home() {
 
       const data = await response.json();
 
-      if (!data.success) {
-        showToast(data.message || "Could not add product.");
+      if (!response.ok || !data.success) {
+        showToast(
+          data.message ||
+            "Could not add product."
+        );
         return;
       }
 
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      /*
+        Get current cart.
+      */
+
+      let cart = [];
+
+      try {
+        cart = JSON.parse(
+          localStorage.getItem("cart") || "[]"
+        );
+
+        if (!Array.isArray(cart)) {
+          cart = [];
+        }
+      } catch {
+        cart = [];
+      }
+
+      /*
+        Find existing product.
+      */
 
       const existingProduct = cart.find(
-        (item) => item.id === product.id
+        (item) =>
+          String(item.id) ===
+          String(product.id)
       );
 
       if (existingProduct) {
-        existingProduct.quantity += 1;
+        existingProduct.quantity =
+          (Number(existingProduct.quantity) || 0) +
+          1;
       } else {
         cart.push({
           id: product.id,
           name: product.name,
           price: product.price,
           image: product.image,
+          category: product.category,
+          description: product.description,
           quantity: 1,
         });
       }
 
-      localStorage.setItem("cart", JSON.stringify(cart));
+      /*
+        Save cart.
+      */
 
-      window.dispatchEvent(new Event("cartUpdated"));
+      localStorage.setItem(
+        "cart",
+        JSON.stringify(cart)
+      );
 
-      setProducts((currentProducts) =>
+      /*
+        Tell Navbar to update cart number.
+      */
+
+      window.dispatchEvent(
+        new Event("cartUpdated")
+      );
+
+      /*
+        Update product stock immediately.
+      */
+
+      setAllProducts((currentProducts) =>
         currentProducts.map((item) =>
-          item.id === product.id
-            ? { ...item, stock: data.stock }
+          String(item.id) ===
+          String(product.id)
+            ? {
+                ...item,
+                stock:
+                  data.stock ??
+                  Math.max(
+                    0,
+                    (Number(item.stock) || 0) - 1
+                  ),
+              }
             : item
         )
       );
 
-      showToast(`${product.name} added to cart`);
-    } catch (error) {
-      console.error("Add to cart error:", error);
-      showToast("Could not add product to cart.");
+      showToast(
+        `${product.name} added to cart`
+      );
+    } catch (err) {
+      console.error(
+        "Add to cart error:",
+        err
+      );
+
+      showToast(
+        "Could not add product to cart."
+      );
     }
   };
+
+  /*
+    ==========================================================
+    CATEGORY ICON
+    ==========================================================
+  */
 
   const getCategoryIcon = (name) => {
     if (name === "Electronics") {
-      return <Icon name="monitor" size={22} />;
+      return (
+        <Icon
+          name="monitor"
+          size={22}
+        />
+      );
     }
 
     if (name === "Fitness") {
-      return <Icon name="fitness" size={22} />;
+      return (
+        <Icon
+          name="fitness"
+          size={22}
+        />
+      );
     }
 
     if (name === "Home") {
-      return <Icon name="home" size={22} />;
+      return (
+        <Icon
+          name="home"
+          size={22}
+        />
+      );
     }
 
-    return <Icon name="package" size={22} />;
+    return (
+      <Icon
+        name="package"
+        size={22}
+      />
+    );
   };
+
+  /*
+    ==========================================================
+    SCROLL TO PRODUCTS
+    ==========================================================
+  */
+
+  const scrollToCollection = () => {
+    document
+      .querySelector(".collection-section")
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
+  };
+
+  /*
+    ==========================================================
+    PAGE
+    ==========================================================
+  */
 
   return (
     <main className="premium-store">
 
-      {/* HERO */}
+      {/* ==================================================
+          HERO
+      ================================================== */}
+
       <section className="premium-hero">
+
         <div className="hero-noise"></div>
 
         <div className="hero-inner">
+
           <div className="hero-left">
 
             <div className="hero-kicker">
               <span></span>
+
               CS TECH STORE
-              <small>EST. 2026</small>
+
+              <small>
+                EST. 2026
+              </small>
             </div>
 
             <h1>
               Technology
               <br />
+
               <span>built for</span>
-              <strong>everyday.</strong>
+
+              <strong>
+                everyday.
+              </strong>
             </h1>
 
             <p className="hero-description">
-              Discover useful technology for study,
-              work, fitness and everyday life.
+              Discover useful technology for
+              study, work, fitness and everyday
+              life.
             </p>
 
-            <div className="premium-search">
-              <Icon name="search" size={18} />
+            {/* SEARCH */}
 
-              <input
-                type="text"
-                value={search}
-                placeholder="Search products..."
-                onChange={(e) => setSearch(e.target.value)}
+            <div className="premium-search">
+
+              <Icon
+                name="search"
+                size={18}
               />
 
-              <span>⌘ K</span>
+              <input
+                type="search"
+                value={search}
+                placeholder="Search products..."
+                aria-label="Search products"
+                onChange={(e) =>
+                  setSearch(e.target.value)
+                }
+              />
+
+              <span>
+                ⌘ K
+              </span>
+
             </div>
 
+            {/* HERO BUTTONS */}
+
             <div className="hero-actions">
+
               <button
-                onClick={() =>
-                  document
-                    .querySelector(".collection-section")
-                    ?.scrollIntoView({
-                      behavior: "smooth",
-                    })
-                }
+                type="button"
+                onClick={scrollToCollection}
               >
                 Explore collection
-                <Icon name="arrow" size={17} />
+
+                <Icon
+                  name="arrow"
+                  size={17}
+                />
               </button>
 
               <div className="hero-stat">
-                <strong>{products.length}</strong>
-                <span>PRODUCTS</span>
+
+                <strong>
+                  {products.length}
+                </strong>
+
+                <span>
+                  PRODUCTS
+                </span>
+
               </div>
+
             </div>
+
           </div>
 
           {/* HERO IMAGE */}
+
           <div className="premium-hero-visual">
+
             <div className="visual-grid"></div>
+
             <div className="visual-glow"></div>
+
             <div className="visual-ring ring-one"></div>
+
             <div className="visual-ring ring-two"></div>
 
             <img
@@ -283,324 +576,612 @@ function Home() {
             />
 
             <div className="visual-label label-top">
+
               <span className="status-dot"></span>
+
               SYSTEM ONLINE
+
             </div>
 
             <div className="visual-label label-bottom">
-              <span>01</span>
+
+              <span>
+                01
+              </span>
+
               DIGITAL COLLECTION
+
             </div>
 
             <div className="floating-spec spec-one">
-              <small>DESIGN</small>
-              <strong>01</strong>
+
+              <small>
+                DESIGN
+              </small>
+
+              <strong>
+                01
+              </strong>
+
             </div>
 
             <div className="floating-spec spec-two">
-              <small>STORE</small>
-              <strong>CS / 26</strong>
+
+              <small>
+                STORE
+              </small>
+
+              <strong>
+                CS / 26
+              </strong>
+
             </div>
+
           </div>
+
         </div>
 
         <div className="hero-bottom-line">
-          <span>SCROLL TO EXPLORE</span>
+
+          <span>
+            SCROLL TO EXPLORE
+          </span>
+
           <div></div>
-          <span>THAILAND</span>
+
+          <span>
+            THAILAND
+          </span>
+
         </div>
+
       </section>
 
-      {/* CATEGORY */}
+      {/* ==================================================
+          CATEGORY
+      ================================================== */}
+
       <section className="category-section-premium">
+
         <div className="section-heading-premium">
+
           <div>
-            <span>01 / COLLECTION</span>
+
+            <span>
+              01 / COLLECTION
+            </span>
 
             <h2>
               Find your
               <br />
               category.
             </h2>
+
           </div>
 
           <p>
             Explore our products through
             simple, focused collections.
           </p>
+
         </div>
 
         <div className="category-grid-premium">
 
-          {/* ALL PRODUCTS */}
+          {/* ALL */}
+
           <button
+            type="button"
             className={
               category === "All"
                 ? "premium-category active"
                 : "premium-category"
             }
-            onClick={() => setCategory("All")}
+            onClick={() =>
+              setCategory("All")
+            }
           >
+
             <span className="category-index">
               01
             </span>
 
             <div className="category-icon-premium">
-              <Icon name="bag" size={24} />
+
+              <Icon
+                name="bag"
+                size={24}
+              />
+
             </div>
 
             <div className="category-content-premium">
-              <small>COLLECTION</small>
 
-              <strong>All Products</strong>
+              <small>
+                COLLECTION
+              </small>
+
+              <strong>
+                All Products
+              </strong>
 
               <span>
                 Everything in one place
               </span>
+
             </div>
 
             <div className="category-arrow-premium">
-              <Icon name="arrow" size={18} />
+
+              <Icon
+                name="arrow"
+                size={18}
+              />
+
             </div>
+
           </button>
 
-          {/* CATEGORIES */}
-          {categories.map((item, index) => (
-            <button
-              key={item}
-              className={
-                category === item
-                  ? "premium-category active"
-                  : "premium-category"
-              }
-              onClick={() => setCategory(item)}
-            >
-              <span className="category-index">
-                {String(index + 2).padStart(2, "0")}
-              </span>
+          {/* DYNAMIC CATEGORIES */}
 
-              <div className="category-icon-premium">
-                {getCategoryIcon(item)}
-              </div>
+          {categories.map(
+            (item, index) => (
 
-              <div className="category-content-premium">
-                <small>COLLECTION</small>
+              <button
+                type="button"
+                key={item}
+                className={
+                  category === item
+                    ? "premium-category active"
+                    : "premium-category"
+                }
+                onClick={() =>
+                  setCategory(item)
+                }
+              >
 
-                <strong>{item}</strong>
-
-                <span>
-                  Explore the collection
+                <span className="category-index">
+                  {String(index + 2).padStart(
+                    2,
+                    "0"
+                  )}
                 </span>
-              </div>
 
-              <div className="category-arrow-premium">
-                <Icon name="arrow" size={18} />
-              </div>
-            </button>
-          ))}
+                <div className="category-icon-premium">
+
+                  {getCategoryIcon(item)}
+
+                </div>
+
+                <div className="category-content-premium">
+
+                  <small>
+                    COLLECTION
+                  </small>
+
+                  <strong>
+                    {item}
+                  </strong>
+
+                  <span>
+                    Explore the collection
+                  </span>
+
+                </div>
+
+                <div className="category-arrow-premium">
+
+                  <Icon
+                    name="arrow"
+                    size={18}
+                  />
+
+                </div>
+
+              </button>
+
+            )
+          )}
+
         </div>
+
       </section>
 
-      {/* FEATURED */}
+      {/* ==================================================
+          FEATURED PRODUCT
+      ================================================== */}
+
       {products.length > 0 && (
+
         <section className="featured-section">
+
           <div className="featured-image">
+
             <div className="featured-orb"></div>
 
             <img
               src={getImageUrl(products[0])}
-              alt={products[0].name}
+              alt={products[0].name || "Featured product"}
               onError={(e) => {
-                e.currentTarget.style.display = "none";
+                e.currentTarget.style.display =
+                  "none";
               }}
             />
 
             <span className="featured-number">
               FEATURED / 01
             </span>
+
           </div>
 
           <div className="featured-content">
+
             <span className="featured-label">
               FEATURED PRODUCT
             </span>
 
-            <h2>{products[0].name}</h2>
+            <h2>
+              {products[0].name}
+            </h2>
 
-            <p>{products[0].description}</p>
+            <p>
+              {products[0].description ||
+                "Quality technology for your everyday life."}
+            </p>
 
             <div className="featured-meta">
 
               <div>
-                <small>PRICE</small>
+
+                <small>
+                  PRICE
+                </small>
 
                 <strong>
-                  ${Number(products[0].price).toFixed(2)}
+                  ฿
+                  {Number(
+                    products[0].price
+                  ).toLocaleString()}
                 </strong>
+
               </div>
 
               <div>
-                <small>AVAILABILITY</small>
+
+                <small>
+                  AVAILABILITY
+                </small>
 
                 <span>
+
                   <i></i>
 
-                  {products[0].stock > 0
+                  {Number(
+                    products[0].stock
+                  ) > 0
                     ? `${products[0].stock} in stock`
                     : "Sold out"}
+
                 </span>
+
               </div>
 
             </div>
 
             <button
+              type="button"
               className="featured-button"
-              disabled={products[0].stock <= 0}
-              onClick={() => addToCart(products[0])}
+              disabled={
+                Number(products[0].stock) <= 0
+              }
+              onClick={() =>
+                addToCart(products[0])
+              }
             >
-              {products[0].stock > 0
+
+              {Number(products[0].stock) > 0
                 ? "Add to cart"
                 : "Sold out"}
 
-              <Icon name="arrow" size={17} />
+              <Icon
+                name="arrow"
+                size={17}
+              />
+
             </button>
+
           </div>
+
         </section>
+
       )}
 
-      {/* PRODUCTS */}
+      {/* ==================================================
+          PRODUCTS
+      ================================================== */}
+
       <section className="collection-section">
 
         <div className="collection-heading">
-          <div>
-            <span>02 / PRODUCTS</span>
 
-            <h2>The collection.</h2>
+          <div>
+
+            <span>
+              02 / PRODUCTS
+            </span>
+
+            <h2>
+              The collection.
+            </h2>
+
           </div>
 
           <div className="collection-count">
+
             {products.length}
-            <span> ITEMS</span>
+
+            <span>
+              {" "}
+              ITEMS
+            </span>
+
           </div>
+
         </div>
 
-        {loading ? (
+        {/* LOADING */}
+
+        {loading && (
+
           <div className="premium-loading">
+
             <div></div>
 
             <span>
               Loading collection...
             </span>
-          </div>
-        ) : products.length === 0 ? (
-          <div className="premium-empty">
-            <Icon name="package" size={42} />
 
-            <h3>No products found</h3>
+          </div>
+
+        )}
+
+        {/* ERROR */}
+
+        {!loading && error && (
+
+          <div className="premium-empty">
+
+            <Icon
+              name="package"
+              size={42}
+            />
+
+            <h3>
+              Unable to load products
+            </h3>
 
             <p>
-              Try another search or category.
+              {error}
             </p>
+
+            <button
+              type="button"
+              onClick={loadProducts}
+            >
+              Try again
+            </button>
+
           </div>
-        ) : (
-          <div className="premium-product-grid">
 
-            {products.map((product, index) => (
-              <article
-                className="premium-product"
-                key={product.id}
+        )}
+
+        {/* NO PRODUCTS */}
+
+        {!loading &&
+          !error &&
+          products.length === 0 && (
+
+            <div className="premium-empty">
+
+              <Icon
+                name="package"
+                size={42}
+              />
+
+              <h3>
+                No products found
+              </h3>
+
+              <p>
+                Try another search or category.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setCategory("All");
+                }}
               >
+                Show all products
+              </button>
 
-                <div className="premium-product-image">
+            </div>
 
-                  <span className="product-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </span>
+          )}
 
-                  <span className="product-category">
-                    {product.category}
-                  </span>
+        {/* PRODUCT GRID */}
 
-                  <div className="product-glow"></div>
+        {!loading &&
+          !error &&
+          products.length > 0 && (
 
-                  <img
-                    src={getImageUrl(product)}
-                    alt={product.name}
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
+            <div className="premium-product-grid">
 
-                  {product.stock <= 0 && (
-                    <span className="product-sold">
-                      SOLD OUT
-                    </span>
-                  )}
-                </div>
+              {products.map(
+                (product, index) => {
 
-                <div className="premium-product-info">
+                  const stock =
+                    Number(product.stock) || 0;
 
-                  <h3>{product.name}</h3>
+                  const price =
+                    Number(product.price) || 0;
 
-                  <p>{product.description}</p>
+                  return (
 
-                  <div className="premium-product-bottom">
-
-                    <div>
-                      <small>PRICE</small>
-
-                      <strong>
-                        ${Number(product.price).toFixed(2)}
-                      </strong>
-                    </div>
-
-                    <span
-                      className={
-                        product.stock > 0
-                          ? "premium-stock"
-                          : "premium-stock out"
+                    <article
+                      className="premium-product"
+                      key={
+                        product.id ||
+                        product._id ||
+                        index
                       }
                     >
-                      <i></i>
 
-                      {product.stock > 0
-                        ? `${product.stock} available`
-                        : "Unavailable"}
-                    </span>
-                  </div>
+                      <div className="premium-product-image">
 
-                  <button
-                    className="premium-add"
-                    disabled={product.stock <= 0}
-                    onClick={() => addToCart(product)}
-                  >
-                    <span>
-                      {product.stock > 0
-                        ? "Add to cart"
-                        : "Sold out"}
-                    </span>
+                        <span className="product-number">
+                          {String(index + 1).padStart(
+                            2,
+                            "0"
+                          )}
+                        </span>
 
-                    <b>
-                      <Icon
-                        name={
-                          product.stock > 0
-                            ? "plus"
-                            : "check"
-                        }
-                        size={16}
-                      />
-                    </b>
-                  </button>
+                        <span className="product-category">
+                          {product.category ||
+                            "PRODUCT"}
+                        </span>
 
-                </div>
-              </article>
-            ))}
+                        <div className="product-glow"></div>
 
-          </div>
-        )}
+                        {product.image ? (
+
+                          <img
+                            src={getImageUrl(product)}
+                            alt={
+                              product.name ||
+                              "Product"
+                            }
+                            loading="lazy"
+                            onError={(e) => {
+                              e.currentTarget.style.display =
+                                "none";
+                            }}
+                          />
+
+                        ) : (
+
+                          <div className="product-image-placeholder">
+                            PRODUCT
+                          </div>
+
+                        )}
+
+                        {stock <= 0 && (
+
+                          <span className="product-sold">
+                            SOLD OUT
+                          </span>
+
+                        )}
+
+                      </div>
+
+                      <div className="premium-product-info">
+
+                        <h3>
+                          {product.name ||
+                            "Unnamed Product"}
+                        </h3>
+
+                        <p>
+                          {product.description ||
+                            "Quality product for your everyday needs."}
+                        </p>
+
+                        <div className="premium-product-bottom">
+
+                          <div>
+
+                            <small>
+                              PRICE
+                            </small>
+
+                            <strong>
+                              ฿
+                              {price.toLocaleString()}
+                            </strong>
+
+                          </div>
+
+                          <span
+                            className={
+                              stock > 0
+                                ? "premium-stock"
+                                : "premium-stock out"
+                            }
+                          >
+
+                            <i></i>
+
+                            {stock > 0
+                              ? `${stock} available`
+                              : "Unavailable"}
+
+                          </span>
+
+                        </div>
+
+                        <button
+                          type="button"
+                          className="premium-add"
+                          disabled={
+                            stock <= 0
+                          }
+                          onClick={() =>
+                            addToCart(product)
+                          }
+                        >
+
+                          <span>
+                            {stock > 0
+                              ? "Add to cart"
+                              : "Sold out"}
+                          </span>
+
+                          <b>
+
+                            <Icon
+                              name={
+                                stock > 0
+                                  ? "plus"
+                                  : "check"
+                              }
+                              size={16}
+                            />
+
+                          </b>
+
+                        </button>
+
+                      </div>
+
+                    </article>
+
+                  );
+                }
+              )}
+
+            </div>
+
+          )}
+
       </section>
 
-      {/* FINAL CTA */}
+      {/* ==================================================
+          FINAL CTA
+      ================================================== */}
+
       <section className="final-premium">
 
         <div className="final-grid">
@@ -616,48 +1197,59 @@ function Home() {
             </span>
 
             <h2>
+
               Good technology
               <br />
+
               <strong>
                 should feel simple.
               </strong>
+
             </h2>
 
             <p>
-              Designed for students, creators,
-              professionals and everyday life.
+              Designed for students,
+              creators, professionals and
+              everyday life.
             </p>
 
             <button
-              onClick={() =>
-                document
-                  .querySelector(".collection-section")
-                  ?.scrollIntoView({
-                    behavior: "smooth",
-                  })
-              }
+              type="button"
+              onClick={scrollToCollection}
             >
+
               Explore products
 
-              <Icon name="arrow" size={17} />
+              <Icon
+                name="arrow"
+                size={17}
+              />
+
             </button>
 
           </div>
 
           <div className="final-mark">
+
             <img
               src={heroImage}
               alt=""
             />
+
           </div>
 
         </div>
+
       </section>
 
-      {/* FOOTER */}
+      {/* ==================================================
+          FOOTER
+      ================================================== */}
+
       <footer className="premium-footer">
 
         <div>
+
           <strong>
             CS TECH STORE
           </strong>
@@ -665,6 +1257,7 @@ function Home() {
           <span>
             Technology for everyday life.
           </span>
+
         </div>
 
         <div>
@@ -673,20 +1266,27 @@ function Home() {
 
       </footer>
 
-      {/* TOAST */}
+      {/* ==================================================
+          TOAST
+      ================================================== */}
+
       {toast && (
+
         <div className="premium-toast">
 
           <span>
+
             <Icon
               name="check"
               size={14}
             />
+
           </span>
 
           {toast}
 
         </div>
+
       )}
 
     </main>

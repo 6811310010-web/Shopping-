@@ -1,327 +1,294 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 
-function MyOrders() {
+const API_BASE = "https://shopping-backend-6gpx.onrender.com";
+
+const getImageUrl = (image) => {
+  if (!image) return "";
+
+  let path = String(image)
+    .trim()
+    .replace(/\\/g, "/");
+
+  path = path.replace(/^https?:\/\/[^/]+/i, "");
+  path = path.replace(/^\/+/, "");
+  path = path.replace(/^static\//i, "");
+
+  if (!/^images\//i.test(path)) {
+    path = `images/${path}`;
+  }
+
+  return `${API_BASE}/static/${path
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
+};
+
+export default function MyOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_BASE}/api/orders`
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Server error: ${response.status}`
+          );
+        }
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(
+            data.message || "Could not load orders."
+          );
+        }
+
+        setOrders(
+          Array.isArray(data.orders)
+            ? data.orders
+            : []
+        );
+      } catch (err) {
+        console.error("Orders error:", err);
+
+        setError(
+          "Could not load your orders. Please try again."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadOrders();
   }, []);
 
-  const loadOrders = async () => {
-    try {
-      const response = await axios.get(
-        "http://https://shopping-backend-6gpx.onrender.com/api/orders"
-      );
+  if (loading) {
+    return (
+      <main className="premium-orders-page">
+        <div className="orders-loading">
+          <div className="orders-spinner"></div>
 
-      if (response.data.success) {
-        setOrders(response.data.orders || []);
-      }
-    } catch (error) {
-      console.error("Error loading orders:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+          <h2>Loading your orders...</h2>
 
-  const getImageUrl = (item) => {
-    if (!item?.image) return "";
+          <p>
+            Please wait while we get your orders.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
-    return `http://https://shopping-backend-6gpx.onrender.com/static/${item.image}`;
-  };
+  if (error) {
+    return (
+      <main className="premium-orders-page">
+        <div className="orders-empty">
+          <span>ERROR / 01</span>
+
+          <h2>Unable to load orders</h2>
+
+          <p>{error}</p>
+
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+          >
+            Try Again
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="premium-orders-page">
-
-      <div className="orders-container">
+      <div className="orders-page-container">
 
         {/* HEADER */}
+
         <header className="orders-page-header">
-
-          <div className="orders-header-icon">
-            📦
-          </div>
-
           <div>
             <span className="page-kicker">
-              ORDER HISTORY
+              ACCOUNT / ORDERS
             </span>
 
             <h1>My Orders</h1>
 
             <p>
-              View and manage your previous orders.
+              View your recent purchases and order
+              details.
             </p>
           </div>
 
+          <div className="orders-header-stat">
+            <span>TOTAL ORDERS</span>
+
+            <strong>{orders.length}</strong>
+          </div>
         </header>
 
+        {/* NO ORDERS */}
 
-        {/* LOADING */}
-        {loading && (
-          <div className="orders-loading">
-            <div className="orders-spinner"></div>
+        {orders.length === 0 ? (
+          <div className="orders-empty">
+            <span>ORDERS / 00</span>
 
-            <p>
-              Loading your orders...
-            </p>
-          </div>
-        )}
-
-
-        {/* EMPTY */}
-        {!loading && orders.length === 0 && (
-          <section className="orders-empty">
-
-            <span>
-              🛍️
-            </span>
-
-            <h2>
-              No orders yet
-            </h2>
+            <h2>No orders yet</h2>
 
             <p>
               Your completed orders will appear here.
             </p>
 
-            <Link
-              to="/"
-              className="shop-now-button"
-            >
-              Start Shopping →
+            <Link to="/">
+              Continue Shopping →
             </Link>
-
-          </section>
-        )}
-
-
-        {/* ORDERS */}
-        {!loading && orders.length > 0 && (
-
-          <div className="orders-list-premium">
-
-            {orders.map((order, index) => (
-
-              <article
-                className="premium-order-card"
-                key={order.id || index}
-              >
-
-                {/* ORDER HEADER */}
-                <div className="premium-order-top">
-
-                  <div className="order-reference">
-
-                    <span>
-                      ORDER
-                    </span>
-
-                    <strong>
-                      #{orders.length - index}
-                    </strong>
-
-                    <small>
-                      ID: {order.id}
-                    </small>
-
-                  </div>
-
-
-                  <div className="order-grand-total">
-
-                    <span>
-                      TOTAL
-                    </span>
-
-                    <strong>
-                      ฿{Number(order.total).toFixed(2)}
-                    </strong>
-
-                  </div>
-
-                </div>
-
-
-                {/* STATUS */}
-                <div className="premium-order-status">
-
-                  <span className="order-status">
-                    ✓ CONFIRMED
-                  </span>
-
-                  <span>
-                    Order placed successfully
-                  </span>
-
-                </div>
-
-
-                {/* CUSTOMER */}
-                <div className="order-customer-box">
-
-                  <div className="order-section-title">
-                    <span>♟</span>
-                    Customer Information
-                  </div>
-
-                  <div className="customer-grid">
-
-                    <div>
-                      <span>NAME</span>
-
-                      <strong>
-                        {order.customer?.name || "-"}
-                      </strong>
-                    </div>
-
-
-                    <div>
-                      <span>EMAIL</span>
-
-                      <strong>
-                        {order.customer?.email || "-"}
-                      </strong>
-                    </div>
-
-
-                    <div>
-                      <span>PHONE</span>
-
-                      <strong>
-                        {order.customer?.phone || "-"}
-                      </strong>
-                    </div>
-
-
-                    <div>
-                      <span>ADDRESS</span>
-
-                      <strong>
-                        {order.customer?.address || "-"}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                </div>
-
-
-                {/* PRODUCTS */}
-                <div className="premium-order-products">
-
-                  <div className="order-section-title">
-                    🛒 Products
-                  </div>
-
-
-                  {order.items?.map((item, itemIndex) => (
-
-                    <div
-                      className="premium-order-product"
-                      key={item._id || item.id || itemIndex}
-                    >
-
-                      {/* IMAGE */}
-                      <div className="order-product-image">
-
-                        {getImageUrl(item) ? (
-
-                          <img
-                            src={getImageUrl(item)}
-                            alt={item.name || "Product"}
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                            }}
-                          />
-
-                        ) : (
-
-                          <span>
-                            🛍️
-                          </span>
-
-                        )}
-
-                      </div>
-
-
-                      {/* PRODUCT INFO */}
-                      <div className="order-product-info">
-
-                        <strong>
-                          {item.name || "Product"}
-                        </strong>
-
-                        <span>
-                          Quantity: {item.quantity || 0}
-                        </span>
-
-                      </div>
-
-
-                      {/* PRICE */}
-                      <div className="order-product-price">
-
-                        ฿
-                        {(
-                          Number(item.price || 0) *
-                          Number(item.quantity || 0)
-                        ).toFixed(2)}
-
-                      </div>
-
-                    </div>
-
-                  ))}
-
-                </div>
-
-
-                {/* FOOTER */}
-                <div className="premium-order-bottom">
-
-                  <div className="order-items-count">
-
-                    <span>
-                      ITEMS
-                    </span>
-
-                    <strong>
-                      {order.items?.length || 0}
-                    </strong>
-
-                  </div>
-
-
-                  <div className="order-grand-total">
-
-                    <span>
-                      GRAND TOTAL
-                    </span>
-
-                    <strong>
-                      ฿{Number(order.total).toFixed(2)}
-                    </strong>
-
-                  </div>
-
-                </div>
-
-              </article>
-
-            ))}
-
           </div>
+        ) : (
+          <div className="orders-list">
+            {orders.map((order, index) => {
+              const items = Array.isArray(
+                order.items
+              )
+                ? order.items
+                : [];
 
+              const total =
+                Number(order.total) || 0;
+
+              return (
+                <article
+                  className="premium-order-card"
+                  key={
+                    order.id ||
+                    order._id ||
+                    index
+                  }
+                >
+                  {/* ORDER TOP */}
+
+                  <div className="order-card-top">
+                    <div className="order-reference">
+                      <span>ORDER</span>
+
+                      <strong>
+                        #
+                        {String(
+                          order.id ||
+                            order._id ||
+                            "UNKNOWN"
+                        ).slice(-8)}
+                      </strong>
+                    </div>
+
+                    <div className="order-status">
+                      COMPLETED
+                    </div>
+                  </div>
+
+                  {/* PRODUCTS */}
+
+                  <div className="order-products">
+                    {items.map(
+                      (item, itemIndex) => {
+                        const quantity =
+                          Number(
+                            item.quantity
+                          ) || 1;
+
+                        const price =
+                          Number(item.price) || 0;
+
+                        return (
+                          <div
+                            className="order-product"
+                            key={
+                              item.id ||
+                              item._id ||
+                              itemIndex
+                            }
+                          >
+                            <div className="order-product-image">
+                              {item.image && (
+                                <img
+                                  src={getImageUrl(
+                                    item.image
+                                  )}
+                                  alt={
+                                    item.name ||
+                                    "Product"
+                                  }
+                                />
+                              )}
+                            </div>
+
+                            <div className="order-product-info">
+                              <strong>
+                                {item.name ||
+                                  "Product"}
+                              </strong>
+
+                              <span>
+                                QTY {quantity}
+                              </span>
+                            </div>
+
+                            <strong className="order-product-price">
+                              ฿
+                              {(
+                                price *
+                                quantity
+                              ).toLocaleString()}
+                            </strong>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+
+                  {/* BOTTOM */}
+
+                  <div className="premium-order-bottom">
+                    <div className="order-customer">
+                      <span>CUSTOMER</span>
+
+                      <strong>
+                        {order.customer?.name ||
+                          "Customer"}
+                      </strong>
+                    </div>
+
+                    <div className="order-items-count">
+                      <span>ITEMS</span>
+
+                      <strong>
+                        {items.length}
+                      </strong>
+                    </div>
+
+                    <div className="order-grand-total">
+                      <span>TOTAL</span>
+
+                      <strong>
+                        ฿{total.toLocaleString()}
+                      </strong>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         )}
 
       </div>
-
     </main>
   );
 }
-
-export default MyOrders;
